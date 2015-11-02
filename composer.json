@@ -1,0 +1,7 @@
+{
+    "require": {
+        "slim/slim": "^2.6",
+        "twig/twig": "*",
+        "lcobucci/jwt": "^3.0"
+    }
+}
