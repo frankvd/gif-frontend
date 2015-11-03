@@ -3,6 +3,7 @@
 require __DIR__ . '/../vendor/autoload.php';
 
 use Lcobucci\JWT\Builder;
+use Lcobucci\JWT\Parser;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 
 // Load config
@@ -19,8 +20,22 @@ $app = new \Slim\Slim([
 // Setup twig
 $loader = new Twig_Loader_Filesystem(__DIR__ . '/../templates');
 $twig = new Twig_Environment($loader, array(
-    'cache' => __DIR__ . '/../templates_cache',
+    'cache' => false// __DIR__ . '/../templates_cache',
 ));
+
+$authMiddleware = function() use ($app, $jwt_secret) {
+	$cookie = $app->getCookie('jwt');
+
+	try {
+		$token = (new Parser())->parse((string) $cookie);
+	} catch (Exception $e) {
+		$app->redirect('/login');
+	}
+	$signer = new Sha256();
+	if (!$token->verify($signer, $jwt_secret)) {
+		$app->redirect('/login');
+	}
+};
 
 $app->post('/register', function() use ($app, $dbfunc) {
 	$db = $dbfunc();
@@ -36,10 +51,10 @@ $app->post('/register', function() use ($app, $dbfunc) {
 });
 
 $app->get('/login', function() use ($twig) {
-	$twig->render('login.phtml');
+	echo $twig->render('login.phtml');
 });
 
-$app->post('/login', function() use ($app ,$dbfunc, $jwt_secret) {
+$app->post('/login', function() use ($twig, $app ,$dbfunc, $jwt_secret) {
 	$db = $dbfunc();
 
 	$username = $app->request()->post('username');
@@ -49,6 +64,8 @@ $app->post('/login', function() use ($app ,$dbfunc, $jwt_secret) {
 	$stmt->execute([':username' => $username]);
 
 	if ($stmt->rowCount() == 0) {
+		$app->status(401);
+		echo $twig->render('login.phtml', ['error' => 'invalid username or password']);
 		return;
 	}
 
@@ -62,14 +79,16 @@ $app->post('/login', function() use ($app ,$dbfunc, $jwt_secret) {
             ->setExpiration(time() + 3600) // Configures the expiration time of the token (exp claim)
             ->sign($signer, $jwt_secret) // creates a signature using "testing" as key
             ->getToken(); // Retrieves the generated token
-        echo $token;
+        $app->setCookie('jwt', $token);
+        $app->redirect('/');
 	} else {
-		//$app->flash('error', 'invalid username or password');
-		//$app->redirect('/login');
+		$app->status(401);
+		echo $twig->render('login.phtml', ['error' => 'invalid username or password']);
+		return;
 	}
 });
 
-$app->get('/', function() use ($twig) {
+$app->get('/', $authMiddleware, function() use ($twig) {
 	echo $twig->render('home.phtml');
 });
 
