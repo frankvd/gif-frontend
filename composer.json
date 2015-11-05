@@ -3,5 +3,10 @@
         "slim/slim": "^2.6",
         "twig/twig": "*",
         "lcobucci/jwt": "^3.0"
+    },
+    "autoload": {
+    	"psr-0": {
+    		"V": "lib/"
+    	}
     }
 }

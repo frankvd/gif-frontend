@@ -1,10 +1,11 @@
 <?php
 
 $dbfunc = function() {
-	return new PDO("mysql:dbname=DATABASE;host=127.0.0.1", "USERNAME", "PASSWORD");
+	return new PDO('sqlite:../data/db.sqlite');
 };
 
 return [
 	'dbfunc' => $dbfunc,
+	'backed_host' => 'http://localhost:3000',
 	'jwt_secret' => 'SUPER_SECRET_TOKEN'
 ];

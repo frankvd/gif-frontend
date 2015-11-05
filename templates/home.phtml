@@ -1,15 +1,55 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<title></title>
-</head>
-<body>
-<h1>hoi</h1>
-<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-</body>
-</html>
+{% extends "layout.phtml" %}
+
+{% block content %}
+<div class="row">
+	<div class="col-md-12">
+		<h1>Gifiding</h1>
+		<form id="upload-form">
+			<input type="file" name="background" accept="image/*">
+			<input type="file" name="image" accept="image/*">
+			<input type="submit" value="upload">
+		</form>
+		<img id="output-image" src="">
+	</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript">
+	$(function() {
+		$('#upload-form').submit(function(e) {
+			e.preventDefault();
+			$.ajax({
+				url: '{{backend_host}}/upload',
+				type: 'POST',
+				headers: {Authorization: 'Bearer '+getCookie('jwt')},
+				data: new FormData(this),
+				processData: false,
+				contentType: false
+			}).success(function() {
+				refreshImage(0, 0);
+			});
+		});
+
+		$("#output-image").click(function(e) {
+			refreshImage(e.offsetX*-1, e.offsetY*-1);
+		});
+	});
+
+	function refreshImage(x, y) {
+		$.ajax({
+			url: '{{backend_host}}/img?x='+x+'&y='+y,
+			headers: {Authorization: 'Bearer '+getCookie('jwt')},
+			processData : false,
+		}).always(function(b64data){
+			$("#output-image").attr("src", "data:image/png;base64,"+b64data);
+		});
+	}
+
+	function getCookie (sKey) {
+		if (!sKey) { return null; }
+		return decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*" + encodeURIComponent(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1")) || null;
+	}
+
+</script>
+{% endblock %}

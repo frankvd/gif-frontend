@@ -11,10 +11,20 @@ $config = require __DIR__ . '/../config/config.php';
 
 $dbfunc = $config['dbfunc'];
 $jwt_secret = $config['jwt_secret'];
+$backend_host = $config['backend_host'];
+
+// Setup authentication class
+$auth = new V\Authentication(
+    $dbfunc(),
+    new Sha256(),
+    new Builder(),
+    new Parser,
+    $jwt_secret
+);
 
 // Setup slim app
 $app = new \Slim\Slim([
-	'debug' => true,
+    'debug' => true,
 ]);
 
 // Setup twig
@@ -23,73 +33,51 @@ $twig = new Twig_Environment($loader, array(
     'cache' => false// __DIR__ . '/../templates_cache',
 ));
 
-$authMiddleware = function() use ($app, $jwt_secret) {
-	$cookie = $app->getCookie('jwt');
+// Authentication middleware
+$authMiddleware = function() use ($auth, $app) {
+    $cookie = $app->getCookie('jwt');
 
-	try {
-		$token = (new Parser())->parse((string) $cookie);
-	} catch (Exception $e) {
-		$app->redirect('/login');
-	}
-	$signer = new Sha256();
-	if (!$token->verify($signer, $jwt_secret)) {
-		$app->redirect('/login');
-	}
+    if (!$auth->verifyToken($cookie)) {
+        $app->redirect('/login');
+    }
 };
 
 $app->post('/register', function() use ($app, $dbfunc) {
-	$db = $dbfunc();
+    $db = $dbfunc();
 
-	$username = $app->request()->post('username');
-	$password = $app->request()->post('password');
+    $username = $app->request()->post('username');
+    $password = $app->request()->post('password');
 
-	$stmt = $db->prepare('INSERT INTO user VALUES(:username, :password)');
-	$stmt->execute([
-		':username' => $username,
-		':password' => password_hash($password, PASSWORD_DEFAULT)
-	]);
+    $stmt = $db->prepare('INSERT INTO user VALUES(:username, :password)');
+    $stmt->execute([
+        ':username' => $username,
+        ':password' => password_hash($password, PASSWORD_DEFAULT)
+    ]);
 });
 
+// Login page
 $app->get('/login', function() use ($twig) {
-	echo $twig->render('login.phtml');
+    echo $twig->render('login.phtml');
 });
 
-$app->post('/login', function() use ($twig, $app ,$dbfunc, $jwt_secret) {
-	$db = $dbfunc();
+// Login POST
+$app->post('/login', function() use ($twig, $app, $auth) {
+    $username = $app->request()->post('username');
+    $password = $app->request()->post('password');
 
-	$username = $app->request()->post('username');
-	$password = $app->request()->post('password');
+    if (!$auth->login($username, $password)) {
+        $app->status(401);
+        echo $twig->render('login.phtml', ['error' => 'invalfdfdid username or password']);
+        return;
+    }
 
-	$stmt = $db->prepare('SELECT * FROM user WHERE username = :username');
-	$stmt->execute([':username' => $username]);
-
-	if ($stmt->rowCount() == 0) {
-		$app->status(401);
-		echo $twig->render('login.phtml', ['error' => 'invalid username or password']);
-		return;
-	}
-
-	$row = $stmt->fetchObject();
-
-	if (password_verify($password, $row->password)) {
-		$signer = new Sha256();
-		$token = (new Builder())
-			->setIssuer($username) // Configures the issuer (iss claim)
-            ->setIssuedAt(time()) // Configures the time that the token was issue (iat claim)
-            ->setExpiration(time() + 3600) // Configures the expiration time of the token (exp claim)
-            ->sign($signer, $jwt_secret) // creates a signature using "testing" as key
-            ->getToken(); // Retrieves the generated token
-        $app->setCookie('jwt', $token);
-        $app->redirect('/');
-	} else {
-		$app->status(401);
-		echo $twig->render('login.phtml', ['error' => 'invalid username or password']);
-		return;
-	}
+    $app->setCookie('jwt', $auth->createTokenForUser($username));
+    $app->redirect('/');
 });
 
-$app->get('/', $authMiddleware, function() use ($twig) {
-	echo $twig->render('home.phtml');
+// Home
+$app->get('/', $authMiddleware, function() use ($twig, $backend_host) {
+    echo $twig->render('home.phtml', ['backend_host' => $backend_host]);
 });
 
 $app->run();

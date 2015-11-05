@@ -1,3 +1,4 @@
 /config/config.php
 /vendor/
 /templates_cache/
+/data/
