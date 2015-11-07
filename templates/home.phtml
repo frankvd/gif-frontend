@@ -4,11 +4,17 @@
 <div class="row">
 	<div class="col-md-12">
 		<h1>Gifiding</h1>
-		<form id="upload-form">
-			<input type="file" name="background" accept="image/*">
-			<input type="file" name="image" accept="image/*">
-			<input type="submit" value="upload">
+		<form class="form" id="upload-form">
+			<label>GIF</label>
+			<input type="file" name="gif" accept="image/gif">
+			<br/>
+			<label>Overlay</label>
+			<input type="file" name="overlay" accept="image/*">
+			<br/>
+			<input class="btn" type="submit" value="upload">
 		</form>
+		<p id="error-text" class="text-danger"></p>
+		<br/><br/>
 		<img id="output-image" src="">
 	</div>
 </div>
@@ -19,6 +25,7 @@
 	$(function() {
 		$('#upload-form').submit(function(e) {
 			e.preventDefault();
+			$("#error-text").html('');
 			$.ajax({
 				url: '{{backend_host}}/upload',
 				type: 'POST',
@@ -28,6 +35,11 @@
 				contentType: false
 			}).success(function() {
 				refreshImage(0, 0);
+			}).error(function(err) {
+				if (err.statusCode == 401) {
+					window.location = "/login";
+				}
+				$("#error-text").html(err.statusText);
 			});
 		});
 
@@ -37,12 +49,18 @@
 	});
 
 	function refreshImage(x, y) {
+		$("#error-text").html('');
 		$.ajax({
 			url: '{{backend_host}}/img?x='+x+'&y='+y,
 			headers: {Authorization: 'Bearer '+getCookie('jwt')},
 			processData : false,
-		}).always(function(b64data){
+		}).success(function(b64data){
 			$("#output-image").attr("src", "data:image/png;base64,"+b64data);
+		}).error(function(err) {
+			if (err.statusCode == 401) {
+				window.location = "/login";
+			}
+			$("#error-text").html(err.statusText);
 		});
 	}
 
