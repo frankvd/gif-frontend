@@ -42,6 +42,11 @@ $authMiddleware = function() use ($auth, $app) {
     }
 };
 
+// Register page
+$app->get('/register', function() use ($twig) {
+    echo $twig->render('register.phtml');
+});
+// Register POST
 $app->post('/register', function() use ($app, $dbfunc) {
     $db = $dbfunc();
 
@@ -53,6 +58,8 @@ $app->post('/register', function() use ($app, $dbfunc) {
         ':username' => $username,
         ':password' => password_hash($password, PASSWORD_DEFAULT)
     ]);
+
+    $app->redirect('/login');
 });
 
 // Login page
