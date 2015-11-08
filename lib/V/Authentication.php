@@ -98,6 +98,22 @@ class Authentication {
     }
 
     /**
+     * Register a new user
+     *
+     * @param string $username
+     * @param string $password
+     *
+     * @return bool
+     **/
+    public function register($username, $password) {
+        $stmt = $this->db->prepare('INSERT INTO user VALUES(:username, :password)');
+        $stmt->execute([
+            ':username' => $username,
+            ':password' => password_hash($password, PASSWORD_DEFAULT)
+        ]);
+    }
+
+    /**
      * Verify JWT token
      *
      * Verifies the given JWT token

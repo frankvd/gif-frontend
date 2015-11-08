@@ -47,17 +47,20 @@ $app->get('/register', function() use ($twig) {
     echo $twig->render('register.phtml');
 });
 // Register POST
-$app->post('/register', function() use ($app, $dbfunc) {
-    $db = $dbfunc();
-
+$app->post('/register', function() use ($app, $auth, $twig) {
     $username = $app->request()->post('username');
     $password = $app->request()->post('password');
 
-    $stmt = $db->prepare('INSERT INTO user VALUES(:username, :password)');
-    $stmt->execute([
-        ':username' => $username,
-        ':password' => password_hash($password, PASSWORD_DEFAULT)
-    ]);
+    try {
+        $auth->register($username, $password);
+    } catch(PDOException $e) {
+        $errorMessage = 'error';
+        if ($e->getCode() == '23000') {
+            $errorMessage = "User $username already exists";
+        }
+        echo $twig->render('register.phtml', ['error' => $errorMessage]);
+        return;
+    }
 
     $app->redirect('/login');
 });
