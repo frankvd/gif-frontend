@@ -4,6 +4,11 @@
 <div class="row">
 	<div class="col-md-12">
 		<h1>Gifiding</h1>
+		<ol>
+			<li>Select a GIF</li>
+			<li>Select an overlay</li>
+			<li>Hit 'upload'</li>
+		</ol>
 		<form class="form" id="upload-form">
 			<label>GIF</label>
 			<input type="file" name="gif" accept="image/gif">
@@ -16,6 +21,7 @@
 		<p id="error-text" class="text-danger"></p>
 		<br/><br/>
 		<img id="output-image" src="">
+		<p id="help" style="display:none;"><em>Click on the image to move the overlay</em></p>
 	</div>
 </div>
 {% endblock %}
@@ -55,8 +61,10 @@
 			headers: {Authorization: 'Bearer '+getCookie('jwt')},
 			processData : false,
 		}).success(function(b64data){
+			$('#help').show();
 			$("#output-image").attr("src", "data:image/png;base64,"+b64data);
 		}).error(function(err) {
+			$('#help').hide();
 			if (err.statusCode == 401) {
 				window.location = "/login";
 			}
