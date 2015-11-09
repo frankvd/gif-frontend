@@ -4,7 +4,7 @@ GIF frontend
 *Backend: https://github.com/Vrenc/gif-backend*
 
 ### Configuration
-Create a config file named `config/config.php`. See `config/config.example.php` for an example.
+Create a config file named `config/config.php`. See `config/config.example.php` for an example. Make sure the front and backend HMAC keys match.
 
 ### Docker Compose example
 ```
