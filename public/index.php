@@ -51,6 +51,11 @@ $app->post('/register', function() use ($app, $auth, $twig) {
     $username = $app->request()->post('username');
     $password = $app->request()->post('password');
 
+    if (!trim($username) || !trim($password)) {
+        echo $twig->render('register.phtml', ['error' => 'Username and password cannot be empty']);
+        return;
+    }
+
     try {
         $auth->register($username, $password);
     } catch(PDOException $e) {
@@ -77,7 +82,7 @@ $app->post('/login', function() use ($twig, $app, $auth) {
 
     if (!$auth->login($username, $password)) {
         $app->status(401);
-        echo $twig->render('login.phtml', ['error' => 'invalfdfdid username or password']);
+        echo $twig->render('login.phtml', ['error' => 'invalid username or password']);
         return;
     }
 
